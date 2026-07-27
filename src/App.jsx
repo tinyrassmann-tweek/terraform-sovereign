@@ -33,7 +33,7 @@ function RouteFallback() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
