@@ -39,6 +39,12 @@ npm run build    # production build
 npm run preview  # preview the production build
 ```
 
+## Deployment
+
+The site auto-deploys to **GitHub Pages** via `.github/workflows/deploy.yml`: every push to `main` builds `dist/` and publishes it to the `gh-pages` branch (with a `404.html` SPA fallback for client-side routes). Live at <https://tinyrassmann-tweek.github.io/terraform-sovereign/>.
+
+The Vite `base` is `/terraform-sovereign/` (set in `vite.config.js`) — update it if the repo is renamed or a custom domain is added.
+
 ## Route Map
 
 ### Public / Overture
@@ -101,20 +107,22 @@ src/
 │   ├── mockMetrics.js        # platformMetrics + conductorMetrics
 │   └── mockContributors.js   # 6 mock Open Score contributors
 ├── lib/
-│   ├── api.js                # Async API stubs (~250ms delay) — swap for real backend
-│   └── auth.jsx              # useAuth() context — mock Google sign-in
+│   ├── supabaseClient.js     # Supabase connection + row mappers (mock fallback when unconfigured)
+│   ├── api.js                # Data layer — Supabase when configured, mocks otherwise
+│   └── auth.jsx              # useAuth() context — Google OAuth via Supabase, mock fallback
 └── three/
     └── HeroScene.jsx         # 3D pulsing node-network hero background
 ```
 
 ## Backend Integration
 
-The app runs entirely on client-side mocks today. All integration points are isolated stubs, clearly marked with `TODO` comments:
+The app auto-detects a backend: set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (see `.env.example`) and every data call goes to **Supabase**; leave them unset and it runs entirely on bundled mock data — no page components change either way.
 
-- **`src/lib/api.js`** — async stubs (`fetchConductors`, `fetchConductorById`, `fetchReviews`, `submitBooking`, `createCheckoutSession`, `submitProviderResponse`, `moderateReview`, `updateProviderStatus`, `assignSponsoredPlacement`) with a simulated ~250ms latency. Replace these with **Supabase** (data + queries) and **Stripe** (checkout sessions, subscription tiers, sponsored placements) calls.
-- **`src/lib/auth.jsx`** — `useAuth()` context with a mock `signInWithGoogle`. Replace with **Google OAuth** (e.g., Supabase Auth) while preserving the exposed shape: `{ user, signInWithGoogle, signOut, favorites, toggleFavorite, bookings, addBooking }`.
+- **`src/lib/supabaseClient.js`** — creates the client and exposes `isSupabaseConfigured` plus row→model mappers.
+- **`src/lib/api.js`** — `fetchConductors`, `fetchConductorById`, `fetchReviews`, `submitBooking`, `submitProviderResponse`, `moderateReview`, `updateProviderStatus`, and `assignSponsoredPlacement` run real Supabase queries against the tables in **`supabase/schema.sql`**. `createCheckoutSession` remains a stub — wire it to a **Stripe** Checkout endpoint (e.g., a Supabase Edge Function).
+- **`src/lib/auth.jsx`** — `useAuth()` with the same exposed shape (`{ user, signInWithGoogle, signOut, favorites, toggleFavorite, bookings, addBooking }`). When Supabase is configured, `signInWithGoogle` uses real **Google OAuth** via Supabase Auth (enable the Google provider in the Supabase dashboard and allow-list this app's URL); otherwise it uses the local mock user.
 
-Because every page consumes only these stubs, swapping in real services should not require touching page components.
+To provision the database: create a Supabase project, run `supabase/schema.sql` in the SQL editor, then enable RLS policies per portal before production use.
 
 ## Intellectual Property Note
 
