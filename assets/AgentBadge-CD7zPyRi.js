@@ -1,0 +1,1 @@
+import{A as i,j as e}from"./index-C1KD49Ag.js";function o({agentId:r}){const n=i.find(t=>t.id===r);return n?e.jsxs("span",{className:"inline-flex items-center gap-1.5 rounded-full border border-neon/30 bg-neon/10 px-3 py-1 text-xs font-medium text-neon",children:[e.jsx("span",{"aria-hidden":"true",children:n.icon}),n.name]}):null}export{o as A};
